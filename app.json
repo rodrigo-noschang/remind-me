@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Lembretes",
+    "slug": "app-lembretes",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#f7f7f2"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.local.app.lembretes"
+    },
+    "android": {
+      "package": "com.local.app.lembretes"
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-notifications"
+    ]
+  }
+}
