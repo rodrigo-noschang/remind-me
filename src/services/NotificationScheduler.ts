@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 export type ScheduleLocalNotificationInput = {
   title: string;
@@ -6,21 +7,55 @@ export type ScheduleLocalNotificationInput = {
   scheduledForUtc: string;
 };
 
+const REMINDERS_CHANNEL_ID = "reminders";
+
 export class NotificationScheduler {
+  async configureNotificationChannels() {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_ID, {
+      name: "Lembretes",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250]
+    });
+  }
+
   async requestPermissions() {
-    const result = await Notifications.requestPermissionsAsync();
-    return result.granted;
+    await this.configureNotificationChannels();
+
+    const currentPermissions = await Notifications.getPermissionsAsync();
+
+    if (currentPermissions.granted) {
+      return true;
+    }
+
+    if (!currentPermissions.canAskAgain) {
+      return false;
+    }
+
+    const requestedPermissions = await Notifications.requestPermissionsAsync();
+    return requestedPermissions.granted;
+  }
+
+  async preparePermissionsOnStartup() {
+    return this.requestPermissions();
   }
 
   async scheduleLocalNotification(input: ScheduleLocalNotificationInput) {
+    await this.configureNotificationChannels();
+
     return Notifications.scheduleNotificationAsync({
       content: {
         title: input.title,
-        body: input.body
+        body: input.body,
+        sound: true
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: new Date(input.scheduledForUtc)
+        date: new Date(input.scheduledForUtc),
+        channelId: REMINDERS_CHANNEL_ID
       }
     });
   }

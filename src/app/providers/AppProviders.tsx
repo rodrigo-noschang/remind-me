@@ -3,16 +3,21 @@ import { createContext, type PropsWithChildren, useCallback, useContext, useEffe
 import type { TaskWithRule } from "@/app/types";
 import { bootstrapDatabase } from "@/db/bootstrap";
 import { SqliteTaskRepository } from "@/repositories/SqliteTaskRepository";
+import { NotificationScheduler } from "@/services/NotificationScheduler";
 import { TaskService, type CreateTaskInput } from "@/services/TaskService";
 
 const taskRepository = new SqliteTaskRepository();
-const taskService = new TaskService(taskRepository);
+const notificationScheduler = new NotificationScheduler();
+const taskService = new TaskService(taskRepository, notificationScheduler);
 
 type TaskContextValue = {
   tasks: TaskWithRule[];
+  todayTasks: TaskWithRule[];
   isLoading: boolean;
   error: string | null;
   createTask: (input: CreateTaskInput) => Promise<TaskWithRule>;
+  completeTodayTask: (taskId: string) => Promise<void>;
+  reopenTodayTask: (taskId: string) => Promise<void>;
   reloadTasks: () => Promise<void>;
 };
 
@@ -20,6 +25,7 @@ const TaskContext = createContext<TaskContextValue | null>(null);
 
 export function AppProviders({ children }: PropsWithChildren) {
   const [tasks, setTasks] = useState<TaskWithRule[]>([]);
+  const [todayTasks, setTodayTasks] = useState<TaskWithRule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +35,13 @@ export function AppProviders({ children }: PropsWithChildren) {
 
     try {
       await bootstrapDatabase();
-      setTasks(await taskRepository.listActive());
+      const [activeTasks, activeTodayTasks] = await Promise.all([
+        taskRepository.listActive(),
+        taskService.listToday()
+      ]);
+
+      setTasks(activeTasks);
+      setTodayTasks(activeTodayTasks);
     } catch (caughtError) {
       console.error(caughtError);
       setError("Nao foi possivel carregar os lembretes salvos.");
@@ -42,6 +54,10 @@ export function AppProviders({ children }: PropsWithChildren) {
     void reloadTasks();
   }, [reloadTasks]);
 
+  useEffect(() => {
+    void notificationScheduler.preparePermissionsOnStartup().catch(console.error);
+  }, []);
+
   const createTask = useCallback(async (input: CreateTaskInput) => {
     setError(null);
 
@@ -49,6 +65,7 @@ export function AppProviders({ children }: PropsWithChildren) {
       await bootstrapDatabase();
       const createdTask = await taskService.create(input);
       setTasks((current) => [createdTask, ...current]);
+      setTodayTasks(await taskService.listToday());
       return createdTask;
     } catch (caughtError) {
       console.error(caughtError);
@@ -57,15 +74,46 @@ export function AppProviders({ children }: PropsWithChildren) {
     }
   }, []);
 
+  const completeTodayTask = useCallback(async (taskId: string) => {
+    setError(null);
+
+    try {
+      await bootstrapDatabase();
+      await taskService.completeTodayOccurrence(taskId);
+      setTodayTasks(await taskService.listToday());
+    } catch (caughtError) {
+      console.error(caughtError);
+      setError("Nao foi possivel concluir o lembrete.");
+      throw caughtError;
+    }
+  }, []);
+
+  const reopenTodayTask = useCallback(async (taskId: string) => {
+    setError(null);
+
+    try {
+      await bootstrapDatabase();
+      await taskService.reopenTodayOccurrence(taskId);
+      setTodayTasks(await taskService.listToday());
+    } catch (caughtError) {
+      console.error(caughtError);
+      setError("Nao foi possivel reabrir o lembrete.");
+      throw caughtError;
+    }
+  }, []);
+
   const value = useMemo<TaskContextValue>(
     () => ({
       tasks,
+      todayTasks,
       isLoading,
       error,
       createTask,
+      completeTodayTask,
+      reopenTodayTask,
       reloadTasks
     }),
-    [createTask, error, isLoading, reloadTasks, tasks]
+    [completeTodayTask, createTask, error, isLoading, reloadTasks, reopenTodayTask, tasks, todayTasks]
   );
 
   return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;

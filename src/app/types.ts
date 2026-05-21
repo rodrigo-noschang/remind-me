@@ -66,4 +66,5 @@ export type ScheduledNotification = {
 export type TaskWithRule = {
   task: Task;
   reminderRule: ReminderRule;
+  occurrence?: TaskOccurrence;
 };

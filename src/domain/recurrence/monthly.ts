@@ -18,13 +18,17 @@ export function buildMonthlyWindow(input: MonthlyWindowInput) {
   const windowStart = clampDay(base, input.reminderStartDay);
 
   return {
-    dueLocalDate: dueDate.toISODate(),
-    windowStartLocalDate: windowStart.toISODate(),
-    windowEndLocalDate: dueDate.toISODate()
+    dueLocalDate: toLocalISODate(dueDate),
+    windowStartLocalDate: toLocalISODate(windowStart),
+    windowEndLocalDate: toLocalISODate(dueDate)
   };
 }
 
 function clampDay(base: DateTime, day: number) {
   const daysInMonth = base.daysInMonth ?? 31;
   return base.set({ day: Math.min(Math.max(day, 1), daysInMonth) });
+}
+
+function toLocalISODate(date: DateTime) {
+  return date.toISODate() ?? date.toFormat("yyyy-MM-dd");
 }

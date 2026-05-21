@@ -11,3 +11,4 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 .DS_Store
+notes.md

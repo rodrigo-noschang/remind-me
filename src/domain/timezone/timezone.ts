@@ -7,8 +7,14 @@ export function getDeviceTimezone() {
 export function localDateTimeToUtcIso(localDate: string, localTime: string, timezone: string) {
   const [hour, minute] = localTime.split(":").map(Number);
 
-  return DateTime.fromISO(localDate, { zone: timezone })
+  const scheduledForUtc = DateTime.fromISO(localDate, { zone: timezone })
     .set({ hour, minute, second: 0, millisecond: 0 })
     .toUTC()
     .toISO();
+
+  if (!scheduledForUtc) {
+    throw new Error("Invalid local date/time for notification scheduling.");
+  }
+
+  return scheduledForUtc;
 }

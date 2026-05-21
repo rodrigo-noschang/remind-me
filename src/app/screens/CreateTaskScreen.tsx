@@ -68,8 +68,11 @@ export function CreateTaskScreen() {
       setTitle("");
       setDescription("");
       Alert.alert("Lembrete criado", "O lembrete foi salvo neste dispositivo.");
-    } catch {
-      Alert.alert("Erro ao salvar", "Nao foi possivel salvar o lembrete agora.");
+    } catch (caughtError) {
+      const message =
+        caughtError instanceof Error ? caughtError.message : "Nao foi possivel salvar o lembrete agora.";
+
+      Alert.alert("Erro ao salvar", message);
     } finally {
       setIsSaving(false);
     }
