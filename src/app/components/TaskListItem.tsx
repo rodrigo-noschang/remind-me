@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { forwardRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DateTime } from "luxon";
 
@@ -10,14 +9,10 @@ type TaskListItemProps = {
   item: TaskWithRule;
   isCompleted?: boolean;
   isUpdating?: boolean;
-  isHidden?: boolean;
   onToggleComplete?: () => void;
 };
 
-export const TaskListItem = forwardRef<View, TaskListItemProps>(function TaskListItem(
-  { isCompleted = false, isHidden = false, isUpdating = false, item, onToggleComplete },
-  ref
-) {
+export function TaskListItem({ isCompleted = false, isUpdating = false, item, onToggleComplete }: TaskListItemProps) {
   const { task, reminderRule } = item;
   const when =
     task.type === "one_time"
@@ -25,7 +20,7 @@ export const TaskListItem = forwardRef<View, TaskListItemProps>(function TaskLis
       : `Todo mes, do dia ${reminderRule.reminderStartDay} ao ${reminderRule.dueDay}, as ${reminderRule.localTime}`;
 
   return (
-    <View ref={ref} style={[styles.container, isCompleted && styles.containerCompleted, isHidden && styles.hidden]}>
+    <View style={[styles.container, isCompleted && styles.containerCompleted]}>
       <View style={styles.row}>
         <Text style={[styles.title, isCompleted && styles.titleCompleted]}>{task.title}</Text>
         <Text style={styles.badge}>{task.type === "one_time" ? "Unico" : "Mensal"}</Text>
@@ -58,7 +53,7 @@ export const TaskListItem = forwardRef<View, TaskListItemProps>(function TaskLis
       ) : null}
     </View>
   );
-});
+}
 
 function formatDate(localDate?: string) {
   if (!localDate) {
@@ -148,8 +143,5 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.52
-  },
-  hidden: {
-    opacity: 0
   }
 });
