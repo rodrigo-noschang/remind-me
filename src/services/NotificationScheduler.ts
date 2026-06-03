@@ -7,9 +7,17 @@ export type ScheduleLocalNotificationInput = {
   scheduledForUtc: string;
 };
 
-const REMINDERS_CHANNEL_ID = "reminders";
+const REMINDERS_CHANNEL_ID = "reminders-alerts-v2";
 
 export class NotificationScheduler {
+  static addReceivedListener(listener: Parameters<typeof Notifications.addNotificationReceivedListener>[0]) {
+    return Notifications.addNotificationReceivedListener(listener);
+  }
+
+  static addResponseListener(listener: Parameters<typeof Notifications.addNotificationResponseReceivedListener>[0]) {
+    return Notifications.addNotificationResponseReceivedListener(listener);
+  }
+
   async configureNotificationChannels() {
     if (Platform.OS !== "android") {
       return;
@@ -18,7 +26,11 @@ export class NotificationScheduler {
     await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_ID, {
       name: "Lembretes",
       importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250]
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      sound: "default",
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
+      showBadge: true
     });
   }
 
@@ -46,17 +58,52 @@ export class NotificationScheduler {
   async scheduleLocalNotification(input: ScheduleLocalNotificationInput) {
     await this.configureNotificationChannels();
 
-    return Notifications.scheduleNotificationAsync({
+    const providerNotificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: input.title,
         body: input.body,
-        sound: true
+        sound: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+        data: {
+          scheduledForUtc: input.scheduledForUtc
+        }
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: new Date(input.scheduledForUtc),
         channelId: REMINDERS_CHANNEL_ID
       }
+    });
+
+    console.log("[notifications] scheduled", {
+      providerNotificationId,
+      channelId: REMINDERS_CHANNEL_ID,
+      scheduledForUtc: input.scheduledForUtc,
+      scheduledForLocal: new Date(input.scheduledForUtc).toLocaleString()
+    });
+
+    return providerNotificationId;
+  }
+
+  async logDiagnostics() {
+    const [permissions, scheduledNotifications] = await Promise.all([
+      Notifications.getPermissionsAsync(),
+      Notifications.getAllScheduledNotificationsAsync()
+    ]);
+    const channel =
+      Platform.OS === "android"
+        ? await Notifications.getNotificationChannelAsync(REMINDERS_CHANNEL_ID)
+        : null;
+
+    console.log("[notifications] diagnostics", {
+      permissions,
+      channel,
+      scheduledNotifications: scheduledNotifications.map((notification) => ({
+        identifier: notification.identifier,
+        title: notification.content.title,
+        trigger: notification.trigger,
+        data: notification.content.data
+      }))
     });
   }
 

@@ -56,6 +56,31 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   useEffect(() => {
     void notificationScheduler.preparePermissionsOnStartup().catch(console.error);
+    void notificationScheduler.logDiagnostics().catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const receivedSubscription = NotificationScheduler.addReceivedListener((notification) => {
+      console.log("[notifications] received", {
+        identifier: notification.request.identifier,
+        title: notification.request.content.title,
+        trigger: notification.request.trigger,
+        data: notification.request.content.data
+      });
+    });
+    const responseSubscription = NotificationScheduler.addResponseListener((response) => {
+      console.log("[notifications] response", {
+        identifier: response.notification.request.identifier,
+        actionIdentifier: response.actionIdentifier,
+        title: response.notification.request.content.title,
+        data: response.notification.request.content.data
+      });
+    });
+
+    return () => {
+      receivedSubscription.remove();
+      responseSubscription.remove();
+    };
   }, []);
 
   const createTask = useCallback(async (input: CreateTaskInput) => {

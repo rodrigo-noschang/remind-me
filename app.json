@@ -16,11 +16,19 @@
       "bundleIdentifier": "com.local.app.lembretes"
     },
     "android": {
-      "package": "com.local.app.lembretes"
+      "package": "com.local.app.lembretes",
+      "permissions": [
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ]
     },
     "plugins": [
       "expo-sqlite",
       "expo-notifications"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5080f128-83de-4a64-8f1e-aff57ef94445"
+      }
+    }
   }
 }
